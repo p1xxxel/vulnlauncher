@@ -1,0 +1,115 @@
+{% extends "launcher/base.html" %}
+{% block script %}
+      function getCookie(name) {
+          let cookieValue = null;
+          if (document.cookie && document.cookie !== '') {
+              const cookies = document.cookie.split(';');
+              for (let i = 0; i < cookies.length; i++) {
+                  const cookie = cookies[i].trim();
+                  if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                      cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                      break;
+                  }
+              }
+          }
+          return cookieValue;
+      }
+
+      function sendToDownload(url){
+          const csrftoken = getCookie('csrftoken')
+          split_arr = url.split('/')
+          file_name = split_arr[split_arr.length - 1]
+          file_name = file_name.replaceAll('.', '-')
+          document.getElementById('dl-status-'+file_name).innerHTML = 'Download Started!'
+          const request = new Request('download',{
+              method: 'POST',
+              body: JSON.stringify({
+                  'download_link': url,
+                  'action': 'download'
+              }),
+              headers: {'X-CSRFToken': csrftoken},
+              mode: 'same-origin'
+          });
+          fetch(request);
+        document.getElementById('dl-'+file_name).setAttribute('onclick','cancelDownload('+"'"+url+"'"+')')
+        document.getElementById('dl-'+file_name).innerHTML = 'Cancel'
+      }
+
+      function cancelDownload(url){
+          const csrftoken = getCookie('csrftoken')
+          split_arr = url.split('/')
+          file_name = split_arr[split_arr.length - 1]
+          file_name = file_name.replaceAll('.', '-')
+          document.getElementById('dl-status-'+file_name).innerHTML = 'Download Cancelled!'
+          const request = new Request('download',{
+              method: 'POST',
+              body: JSON.stringify({
+                  'download_link': url,
+                  'action': 'cancel'
+              }),
+              headers: {'X-CSRFToken': csrftoken},
+              mode: 'same-origin'
+          });
+          fetch(request);
+        document.getElementById('dl-'+file_name).setAttribute('onclick','sendToDownload('+"'"+url+"'"+')')
+        document.getElementById('dl-'+file_name).innerHTML = 'Download'
+      }
+
+      function getDownloadStatus(url){
+          const csrftoken = getCookie('csrftoken')
+        const request = new Request('download',{
+          method: 'POST',
+          body: JSON.stringify({
+            'download_link': url,
+            'action': 'status'
+          }),
+          headers: {'X-CSRFToken': csrftoken},
+          mode: 'same-origin'
+        });
+        fetch(request);
+      }
+
+function updateProgressBar(url, total_file_size){
+  const csrftoken = getCookie('csrftoken')
+  split_arr = url.split('/')
+  file_name = split_arr[split_arr.length - 1]
+  file_name = file_name.replaceAll('.', '-')
+  const request = new Request('download',{
+    method: 'POST',
+    body: JSON.stringify({
+      'download_link': url,
+      'action': 'status'
+    }),
+    headers: {'X-CSRFToken': csrftoken},
+    mode: 'same-origin'
+  });
+  fetch(request).then(function(response) {
+    return response.text().then(function(text) {
+      if (document.getElementById('dl-progress-'+file_name).innerHTML.length === 0){
+        var progress_bar = document.createElement('progress')
+      progress_bar.setAttribute('value',JSON.parse(text).downloaded);
+      progress_bar.setAttribute('max',total_file_size)
+      document.getElementById('dl-progress-' + file_name).appendChild(progress_bar)
+      }
+      else {
+        var progress_bar = document.getElementById('dl-progress-'+file_name).firstElementChild
+      progress_bar.setAttribute('value',JSON.parse(text).downloaded);
+      progress_bar.setAttribute('max',total_file_size)
+      }
+    })
+  });
+}
+{% endblock %}
+{% block content %}
+    <p>
+      {% for machine in machines %}
+        <h2>{{ machine.0 }}</h2>
+            <p>{{ machine.1 }}</p>
+            <p>{{ machine.2 }}</p>
+            <p>{{ machine.3 }}</p>
+  <button type="submit" id = 'dl-{{ machine.5 }}' value="Download" onclick="sendToDownload('{{ machine.4 }}')">Download</button>
+        <p id='dl-status-{{ machine.5 }}'></p>
+        <p id='dl-progress-{{ machine.5 }}'></p>
+      {% endfor %}
+    </p>
+{% endblock %}

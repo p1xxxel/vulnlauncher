@@ -1,0 +1,130 @@
+{% extends "launcher/base.html" %}
+    {% block script %}
+  function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+   }
+      function getCookie(name) {
+          let cookieValue = null;
+          if (document.cookie && document.cookie !== '') {
+              const cookies = document.cookie.split(';');
+              for (let i = 0; i < cookies.length; i++) {
+                  const cookie = cookies[i].trim();
+                  if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                      cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                      break;
+                  }
+              }
+          }
+          return cookieValue;
+      }
+      function displayOngoing(url,file_size){
+        var ongoing = document.getElementById('ongoing-downloads')
+        split_arr = url.split('/')
+        file_name = split_arr[split_arr.length - 1]
+        file_name_id = file_name.replaceAll('.', '-')
+        var child = document.createElement('p')
+        child.setAttribute('id',file_name_id)
+        var name_element = document.createElement('b')
+        name_element.innerHTML = file_name
+        child.appendChild(name_element)
+        var line_break = document.createElement('br')
+        child.appendChild(line_break)
+        file_size = (file_size*0.00000095367432).toFixed(2)
+        var size_element = document.createElement('p')
+        size_element.setAttribute('id', 'dl-size-'+file_name_id)
+        child.appendChild(size_element)
+        var button_element = document.createElement('button')
+        button_element.setAttribute('type','submit')
+        button_element.setAttribute('onclick','cancelDownload('+"'"+url+"'"+")")
+        button_element.innerHTML = 'Cancel'
+        child.appendChild(button_element)
+        ongoing.appendChild(child)
+      };
+      function cancelDownload(url){
+          const csrftoken = getCookie('csrftoken')
+          split_arr = url.split('/')
+          file_name = split_arr[split_arr.length - 1]
+          file_name = file_name.replaceAll('.', '-')
+          const request = new Request('download',{
+              method: 'POST',
+              body: JSON.stringify({
+                  'download_link': url,
+                  'action': 'cancel'
+              }),
+              headers: {'X-CSRFToken': csrftoken},
+              mode: 'same-origin'
+          });
+          fetch(request);
+          downloaded_element = document.getElementById(file_name)
+          downloaded_element.parentNode.removeChild(downloaded_element)
+      }
+
+async function updateProgressBar(url,file_size){
+  file_size = (file_size*0.00000095367432).toFixed(2)
+  var download_completed = false;
+  while(true){
+    if(download_completed === true){
+      break;
+    }
+        const csrftoken = getCookie('csrftoken')
+        split_arr = url.split('/')
+        file_name = split_arr[split_arr.length - 1]
+        file_name_id = file_name.replaceAll('.', '-')
+  if (document.getElementById('dl-progress-'+file_name_id) === null){
+    var progress_element = document.createElement('div')
+    progress_element.setAttribute('id', 'dl-progress-'+file_name_id)
+    progress_element.setAttribute('class', 'progress')
+    document.getElementById(file_name_id).appendChild(progress_element);
+  };
+        const request = new Request('download',{
+          method: 'POST',
+          body: JSON.stringify({
+            'download_link': url,
+            'action': 'status'
+          }),
+          headers: {'X-CSRFToken': csrftoken},
+          mode: 'same-origin'
+        });
+        fetch(request).then(function(response) {
+          return response.text().then(function(text) {
+            var size_downloaded = ((JSON.parse(text).downloaded)*0.00000095367432).toFixed(2)
+      if (document.getElementById('dl-progress-'+file_name_id).innerHTML.length === 0){
+        var progress_bar = document.createElement('div')
+      progress_bar.setAttribute('role','progressbar');
+      progress_bar.setAttribute('style','width: '+((size_downloaded/file_size)*100) + '%')
+      progress_bar.setAttribute('class', 'progress-bar progress-bar-striped progress-bar-animated')
+      document.getElementById('dl-progress-' + file_name_id).appendChild(progress_bar)
+      }
+      else {
+        var progress_bar = document.getElementById('dl-progress-'+file_name_id).firstElementChild
+        percent_downloaded = (((size_downloaded/file_size).toFixed(2))*100)
+      progress_bar.setAttribute('style','width: '+ percent_downloaded + '%')
+      progress_bar.setAttribute('aria-valuenow',size_downloaded);
+      progress_bar.setAttribute('aria-valuemax',file_size)
+      progress_bar.innerHTML = percent_downloaded + '%'
+        if(progress_bar.getAttribute('value') === progress_bar.getAttribute('aria-valuemax')){
+          download_completed = true;
+        }
+      }
+            size_element = document.getElementById('dl-size-'+file_name_id)
+            size_element.innerHTML = 'Downloaded : ' + size_downloaded + ' MB/' + file_size + ' MB'
+          })
+        });
+    await sleep(3000);
+  }
+};
+async function updateBar(){
+  {% for url,file_size in downloading.items %}
+  updateProgressBar('{{ url }}', '{{ file_size }}');
+  await sleep(1000);
+  {% endfor %}
+};
+      {% for url,file_size in downloading.items %}
+setTimeout(function(){displayOngoing('{{ url }}','{{ file_size }}');},1000);
+      {% endfor %}
+setTimeout(function(){updateBar();}, 1000);
+  {% endblock %}
+  {% block content %}
+    <h2>Ongoing Downloads</h2>
+    <p id='ongoing-downloads'></p>
+  {% endblock %}

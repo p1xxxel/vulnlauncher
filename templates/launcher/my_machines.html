@@ -1,0 +1,149 @@
+{% extends "launcher/base.html" %}
+    {% block script %}
+      function getCookie(name) {
+          let cookieValue = null;
+          if (document.cookie && document.cookie !== '') {
+              const cookies = document.cookie.split(';');
+              for (let i = 0; i < cookies.length; i++) {
+                  const cookie = cookies[i].trim();
+                  if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                      cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                      break;
+                  }
+              }
+          }
+          return cookieValue;
+      }
+
+      function toggleVM(machineName, machineFile) {
+          const csrftoken = getCookie('csrftoken')          
+      const request = new Request('toggle-vm',{
+          method: 'POST',
+          body: JSON.stringify({
+              'action': 'toggle',
+              'machine_name': machineName,
+              'machine_file': machineFile
+          }),
+          headers: {'X-CSRFToken': csrftoken},
+          mode: 'same-origin'
+      });
+      fetch(request);
+      }
+
+      function deleteVM(machineName, machineFile) {
+          const csrftoken = getCookie('csrftoken')
+      const request = new Request('toggle-vm',{
+          method: 'POST',
+          body: JSON.stringify({
+              'action': 'delete',
+              'machine_name': machineName,
+              'machine_file': machineFile
+          }),
+          headers: {'X-CSRFToken': csrftoken},
+          mode: 'same-origin'
+      });
+      fetch(request);
+      }
+
+      function removeVM(machineName, machineFile) {
+          const csrftoken = getCookie('csrftoken')
+      const request = new Request('toggle-vm',{
+          method: 'POST',
+          body: JSON.stringify({
+              'action': 'remove',
+              'machine_name': machineName,
+              'machine_file': machineFile
+          }),
+          headers: {'X-CSRFToken': csrftoken},
+          mode: 'same-origin'
+      });
+      fetch(request);
+      }
+
+      function updateVMStatus(vm_name, vm_file) {
+          const csrftoken = getCookie('csrftoken');
+          const request = new Request('vm-status',{
+            method: 'POST',
+            body: JSON.stringify({
+              'machine_name': vm_name,
+              'machine_file': vm_file
+            }),
+            headers: {'X-CSRFToken': csrftoken},
+            mode: 'same-origin'
+          });
+          fetch(request).then(function(response) {
+              return response.text().then(function(text) {
+                status_response = JSON.parse(text).status;
+        if (status_response === 'running') {
+          button_element = document.getElementById('btn-'+vm_file)
+          button_element.setAttribute('value', 'Power Off')
+          button_element.setAttribute('class', 'btn btn-danger')
+        } else if(status_response === 'not running') {
+          button_element = document.getElementById('btn-'+vm_file)
+          button_element.setAttribute('value', 'Power On')
+          button_element.setAttribute('class', 'btn btn-success')
+        } else if(status_response === 'VM not found') {
+          button_element = document.getElementById('btn-'+vm_file)
+          button_element.setAttribute('value', 'Import VM')
+          button_element.setAttribute('class', 'btn btn-primary')
+        }
+
+                document.getElementById('status-'+vm_file).innerHTML = '<b>Status</b> : ' + status_response;
+              });
+          });
+      };
+
+      function updateVMIP(vm_name, vm_file) {
+        status = document.getElementById('status-'+vm_file).innerHTML.substr(16)
+        if (status === 'running') {
+          const csrftoken = getCookie('csrftoken');
+          const request = new Request('vm-ip',{
+            method: 'POST',
+            body: JSON.stringify({
+              'machine_name': vm_name,
+              'machine_file': vm_file
+            }),
+            headers: {'X-CSRFToken': csrftoken},
+            mode: 'same-origin'
+          });
+          fetch(request).then(function(response) {
+              return response.text().then(function(text) {
+                document.getElementById('ip-'+vm_file).innerHTML = '<b>IP address</b> : ' + JSON.parse(text).ip;
+              });
+          });
+        } else if ((status === 'not running') || (status === 'VM not found')){
+          document.getElementById('ip-'+vm_file).innerHTML = '';
+        }
+      };
+
+      {% for key,value in machine_info.items %}
+        {% with key as vm_name %}
+          {% for vm_file in value %}
+            setInterval( function(){updateVMStatus('{{ vm_name }}', '{{vm_file}}');}, 2500);
+            setInterval( function(){updateVMIP('{{ vm_name }}', '{{vm_file}}');}, 10000);
+          {% endfor %}
+        {% endwith %}
+      {% endfor %}
+  {% endblock %}
+  {% block content %}
+    <p>
+      {% for key,value in machine_info.items %}
+        {% with key as vm_name %}
+      <div class="rounded container bg-light">
+          <h2>{{ vm_name }}</h2>
+          {% for vm_file in value %}
+          <b>VM file : {{ vm_file }}</b>
+          <p id='status-{{ vm_file }}'>
+          </p>
+          <p id='ip-{{ vm_file }}'>
+          </p>
+          <button id='btn-{{ vm_file }}' type="submit" value="Power On" onclick="toggleVM('{{ vm_name }}','{{ vm_file }}')" class="btn btn-success"><i class="bi bi-power"></i></button>
+          <button id='btn-del-{{ vm_file }}' type="submit" value="Delete" onclick="deleteVM('{{ vm_name }}','{{ vm_file }}')" class="btn btn-danger"><i class="bi bi-trash3"></i></button>
+          <button id='btn-rem-{{ vm_file }}' type="submit" value="Remove" onclick="removeVM('{{ vm_name }}','{{ vm_file }}')" class="btn btn-secondary"><i class="bi bi-trash3"></i></button>
+      </div>
+          <br>
+          {% endfor %}
+        {% endwith %}
+      {% endfor %}
+    </p>
+  {% endblock %}
