@@ -48,3 +48,27 @@ def set_default_config(settings):
     with open(config_file_path, 'w') as file:
         outputs = yaml.dump({'vm_settings' : settings}, file)
         print(outputs)
+
+def get_machine_config(name):
+    config_dir_path = os.path.expanduser('~/.config/vulnlauncher')
+    config_file_path = config_dir_path + '/settings.yaml'
+    settings_name = f'{name}'
+    with open(config_file_path) as file:
+        try:
+            config = yaml.safe_load(file)
+            machine_config = config.get(settings_name)
+        except yaml.YAMLError as exc:
+            print(exc)
+        if machine_config == None :
+            machine_config = config.get('vm_settings')
+            update_config(settings_name, machine_config)
+    return {name:machine_config}
+
+def update_config(name, settings):
+    config_dir_path = os.path.expanduser('~/.config/vulnlauncher')
+    config_file_path = config_dir_path + '/settings.yaml'
+    with open(config_file_path, 'r') as file:
+        temp = yaml.safe_load(file)
+        temp[f'{name}'] = settings
+    with open(config_file_path, 'w') as file:
+        yaml.dump(temp, file)

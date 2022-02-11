@@ -202,3 +202,19 @@ def remove_vm(machine_name, machine_file):
     path = path[0]
     shutil.rmtree(path)
     return {'success': True}
+
+def modify_adapter(name, adapter_name):
+    params = ['VBoxManage', 'modifyvm', name, '--bridgeadapter1', adapter_name]
+    proc = subprocess.Popen(params, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    output, error = proc.communicate()
+    status = proc.wait()
+
+def settings_vm(name, settings):
+    config = update_config(name, settings)
+    net_interface = settings[f'{name}']['nic']
+    memory_size = str(settings[f'{name}']['ram'])
+    headless_config = settings[f'{name}']['headless']
+    show_ip = settings[f'{name}']['show_ip']
+    modify_adapter(name, net_interface)
+    add_memory(name, memory_size)
+    toggle_headless(name, headless_config)

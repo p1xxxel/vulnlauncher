@@ -10,6 +10,7 @@ urlpatterns = [
     path('my-machines', views.my_machines, name='my_machines'),
     path('toggle-vm', views.toggle_machine, name='toggle_vm'),
     path('vm-status', views.vm_status, name='vm_status'),
+    path('vm-settings', views.machine_settings, name='vm_settings'),
     path('vm-ip', views.vm_ip, name='vm_ip'),
     path('settings', views.settings, name='settings'),
 ]
