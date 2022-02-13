@@ -2,8 +2,8 @@ from django.shortcuts import render
 from .forms import SearchForm, DownloadForm, MachineForm, StatusForm, SettingsForm
 from .scrape import search_machine, display_machine
 from .vuln_download import vuln_download, cancel_download, move_vm_files, get_download_status, get_download_size, get_current_downloads
-from .machine_info import get_machine_info, get_default_config, set_default_config
-from .vbox_interact import toggle_vm, check_status, find_vm_ip, delete_vm_files, remove_vm
+from .machine_info import get_machine_info, get_default_config, set_default_config, get_machine_config
+from .vbox_interact import toggle_vm, check_status, find_vm_ip, delete_vm_files, remove_vm, settings_vm
 from django.http import HttpResponse, HttpResponseRedirect
 import json as simplejson
 
@@ -112,6 +112,26 @@ def settings(request):
         if settings_form.is_valid():
             cleaned_settings = settings_form.cleaned_data
             set_default_config(cleaned_settings)
+            results = {'success': True}
+    json = simplejson.dumps(results)
+    return HttpResponse(json, content_type='application/json')
+
+def machine_settings(request):
+    results = {'success': False}
+    if request.method == 'GET':
+        machine_info = get_machine_info()
+        name = list(machine_info.keys())[0] + '-' + (list(machine_info.values())[0])[0] + '_settings'
+        print(name)
+        search_form = SearchForm()
+        config = get_machine_config(name)
+        print(config)
+        settings_form = SettingsForm(initial=config[name])
+        return render(request, 'launcher/my_machines.html', {'form': settings_form, name: config[name], 'search_form': search_form})
+    elif request.method == 'POST':
+        settings_form = SettingsForm(request.POST)
+        if settings_form.is_valid():
+            cleaned_settings = settings_form.cleaned_data
+            settings_vm(name, cleaned_settings)
             results = {'success': True}
     json = simplejson.dumps(results)
     return HttpResponse(json, content_type='application/json')

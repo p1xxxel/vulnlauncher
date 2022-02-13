@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
 from django import forms
+import os
+import psutil
+import math
 
 class SearchForm(forms.Form):
     search_query = forms.CharField(label='', max_length=100)
@@ -24,8 +27,11 @@ class StatusForm(forms.Form):
     machine_file = forms.CharField(label='Machine File', max_length=200)
 
 class SettingsForm(forms.Form):
-    cpu = forms.IntegerField(min_value=1)
-    nic = forms.CharField(label='NIC', max_length=100)
-    ram = forms.IntegerField(min_value=256)
+    adapter_choices = [tuple([x,x]) for x in os.listdir('/sys/class/net/')]
+    max_ram = [tuple([x,x]) for x in range(256,((math.floor(psutil.virtual_memory().total*(1e-6)))+1), 256)]
+    cpuCount = [tuple([x,x]) for x in range(1,os.cpu_count()+1)]
+    cpu = forms.IntegerField(widget=forms.Select(choices=cpuCount))
+    nic = forms.CharField(label='NIC',widget=forms.Select(choices=adapter_choices))
+    ram = forms.IntegerField(widget=forms.Select(choices=max_ram))
     headless = forms.BooleanField(required=False)
     show_ip = forms.BooleanField(required=False)
