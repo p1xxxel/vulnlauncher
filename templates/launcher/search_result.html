@@ -107,7 +107,7 @@ function updateProgressBar(url, total_file_size){
             <p>{{ machine.1 }}</p>
             <p>{{ machine.2 }}</p>
             <p>{{ machine.3 }}</p>
-  <button type="submit" id = 'dl-{{ machine.5 }}' value="Download" onclick="sendToDownload('{{ machine.4 }}')">Download</button>
+  <button class="btn btn-primary" type="submit" id = 'dl-{{ machine.5 }}' value="Download" onclick="sendToDownload('{{ machine.4 }}')">Download</button>
         <p id='dl-status-{{ machine.5 }}'></p>
         <p id='dl-progress-{{ machine.5 }}'></p>
       {% endfor %}

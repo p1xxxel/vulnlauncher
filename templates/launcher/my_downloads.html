@@ -36,6 +36,7 @@
         var button_element = document.createElement('button')
         button_element.setAttribute('type','submit')
         button_element.setAttribute('onclick','cancelDownload('+"'"+url+"'"+")")
+        button_element.setAttribute('class', 'btn btn-danger')
         button_element.innerHTML = 'Cancel'
         child.appendChild(button_element)
         ongoing.appendChild(child)
